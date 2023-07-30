@@ -1,20 +1,49 @@
 from app import app
 from dbmodels import User,UserInfo,UserType
-from flask import jsonify,request
+from flask import request
 from extension import db
 import re
 from sqlalchemy.exc import IntegrityError
 from base_response import BaseResponse
 import json
+from sqlalchemy import text,create_engine
 from marshmallow import Schema, fields
+import os
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import result
+
+
+baseurl= os.path.abspath(os.path.dirname(__file__))
+engine = create_engine('sqlite:///'+os.path.join(baseurl,'Demostore.db'))
+Session = sessionmaker(bind=engine)
+session = Session()
+
 
 #Get All User with details
+@app.get("/user/pagination")
+def GetUserspagination():
+    page = request.args.get('page',1,int)
+    per_page=request.args.get('per_page',1,int)
+    base_responses=BaseResponse()
+    user_list=User.query.paginate(page=page, per_page=per_page,error_out=False).items
+
+    if user_list:
+        base_responses.isSuccess=True
+        base_responses.data={"count": len(user_list), "users":users_schema.dumps(user_list)} 
+        return  json.dumps(base_responses.__dict__),200
+    else:
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage=f"user not found"
+        return json.dumps(base_responses.__dict__),200
+
+
+# #Get All User with details
 @app.get("/user")
 def GetUsers():
+
     base_responses=BaseResponse()
     user_list=User.query.all()
     if user_list:
-        print(f"count : {len(user_list)}")
         base_responses.isSuccess=True
         base_responses.data={"count": len(user_list), "users":users_schema.dumps(user_list)} 
         return  json.dumps(base_responses.__dict__),200
