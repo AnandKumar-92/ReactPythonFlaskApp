@@ -19,6 +19,7 @@ class User(db.Model):
     usertypeid=Column(db.ForeignKey('usertype.id'))
     usertype=db.relationship('UserType',back_populates='user')
     userinfo=db.relationship('UserInfo',back_populates='user')
+
 class UserType(db.Model):
     __tablename__="usertype"
     id=Column(Integer,primary_key=True)

@@ -1,28 +1,34 @@
-from app import app,ma
+from app import app
 from dbmodels import User,UserInfo,UserType
 from flask import jsonify,request
 from extension import db
 import re
 from sqlalchemy.exc import IntegrityError
+from base_response import BaseResponse
+import json
+from marshmallow import Schema, fields
 
-
+#Get All User with details
 @app.get("/user")
 def GetUsers():
+    base_responses=BaseResponse()
     user_list=User.query.all()
-    result= users_schema.dump(user_list)
-    return jsonify(result),200
-
-def checkusername(username):
-    if username.strip() =="" or username is None:        
-        return {'Error Message':"username is empty"}
+    if user_list:
+        print(f"count : {len(user_list)}")
+        base_responses.isSuccess=True
+        base_responses.data={"count": len(user_list), "users":users_schema.dumps(user_list)} 
+        return  json.dumps(base_responses.__dict__),200
     else:
-        isexituser=User.query.filter_by(username=username).first()
-        if isexituser:
-            return {'Error Message':"Username is already exist"}
-    return {}
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage=f"user not found"
+        return json.dumps(base_responses.__dict__),404
+
+
+# User Signup
 
 @app.post("/user/signup")
 def SignupUser():
+    base_responses=BaseResponse()
     usern=request.form['username']
     passwd=request.form['password']
     emailid=request.form['email']
@@ -43,27 +49,41 @@ def SignupUser():
             ErrorMessage.append({'Error Message':"Email is not valid"})
     
     if len(ErrorMessage)>0:
-        return jsonify(ErrorMessage),400
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage=json.dumps(ErrorMessage)
+        return json.dumps(base_responses.__dict__),400
     else:
         new_user=User(username=usern,password=passwd,email=emailid,usertypeid=2)
         db.session.add(new_user)
         try:
             db.session.commit()
         except IntegrityError:
-            return jsonify({"errormessage":"User already exist"}),409
-    
-        return jsonify(message="Successfully saved"),201
+            base_responses.isSuccess=False
+            base_responses.ErrorMessage="User already exist"
+            return json.dumps(base_responses.__dict__),409
+        base_responses.isSuccess=True
+        base_responses.ErrorMessage="Successfully saved"
+        return json.dumps(base_responses.__dict__),201
 
+# get user by id
 @app.get("/user/<int:userid>")
 def Getuserbyid(userid):
+    base_responses=BaseResponse()
     user=User.query.filter_by(id=userid).first()
     if user:
-        return jsonify(user_schema.dump(user))
+        print(user_schema.dumps(user))
+        base_responses.isSuccess=True
+        base_responses.data= user_schema.dumps(user)
+        return json.dumps(base_responses.__dict__),200
     else:
-        return {"Error Massage":"User Not found"},404
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage=f"{userid} not found"
+        return json.dumps(base_responses.__dict__),404
 
 @app.put("/user/update")
 def UpdateUser():
+    base_responses=BaseResponse()
+
     passwd=request.form['password']
     userid=request.form['user_id']
     emailid=request.form['email']
@@ -75,34 +95,54 @@ def UpdateUser():
             ErrorMessage.append({'Error Message':"Email is not valid"})
     
     if len(ErrorMessage)>0:
-        return jsonify(ErrorMessage),400
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage=json.dumps(ErrorMessage)
+        return json.dumps(base_responses.__dict__),400
     else:
         user=User.query.filter_by(id=userid).first()
         if user:
             user.email=emailid if emailid.strip() !="" and emailid is not None else user.email
             user.password= passwd if  passwd.strip() !="" and passwd is not None else user.password
             db.session.commit()
-            return jsonify(message=f"{user.username} has updated"),202
+            base_responses.isSuccess=True
+            base_responses.message=f"{user.username} has updated"
+            return json.dumps(base_responses.__dict__),202
         else:
-            return jsonify(Errormessage="User not found"),404
+            base_responses.isSuccess=False
+            base_responses.ErrorMessage="User not found"
+            return json.dumps(base_responses.__dict__),404
 
 @app.delete("/user/delete/<int:userid>")
 def DeleteUser(userid):
+    base_responses=BaseResponse()
     user=User.query.filter_by(id=userid).first()
     if user:
         db.session.delete(user)
         db.session.commit()
-        return jsonify(Message="Deleted Successfully"),202
+        base_responses.isSuccess=True
+        base_responses.message="Successfully deleted"
+        return json.dumps(base_responses.__dict__),201
     else:
-        return {"Error Massage":"User Not found"},404
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage="User not found"
+        return json.dumps(base_responses.__dict__),404
 
 
+def checkusername(username):
+    if username.strip() =="" or username is None:        
+        return {'Error Message':"username is empty"}
+    else:
+        isexituser=User.query.filter_by(username=username).first()
+        if isexituser:
+            return {'Error Message':"Username is already exist"}
+    return {}
 
+# Schema
+class UserSchema(Schema):
+    id = fields.Str()
+    username = fields.Str()
+    email = fields.Str()
 
-class UserSchema(ma.Schema):
-    class Meta:
-        # Fields to expose
-         fields = ('id','username', 'password', 'email','count')
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
