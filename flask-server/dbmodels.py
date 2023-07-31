@@ -7,6 +7,7 @@ class UserInfo(db.Model):
     firstname=Column(String(50))
     lastname=Column(String(50))
     userid=Column(Integer)
+    Avatar_url=Column(String(50))
     userid=Column(db.ForeignKey('users.id'))
     user=db.relationship('User',back_populates='userinfo')
 

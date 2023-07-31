@@ -1,6 +1,6 @@
 from app import app
 from dbmodels import User,UserInfo,UserType
-from flask import request
+from flask import request,send_file
 from extension import db
 import re
 from sqlalchemy.exc import IntegrityError
@@ -10,14 +10,54 @@ from sqlalchemy import text,create_engine
 from marshmallow import Schema, fields
 import os
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.engine import result
-
+from datetime import datetime
 
 baseurl= os.path.abspath(os.path.dirname(__file__))
 engine = create_engine('sqlite:///'+os.path.join(baseurl,'Demostore.db'))
 Session = sessionmaker(bind=engine)
 session = Session()
 
+@app.get("/user/get_avatar/<userid>")
+def GetAvatar(userid):
+    base_responses=BaseResponse()
+    userinfo=UserInfo.query.filter_by(id=userid).first()
+    if userinfo:
+        if userinfo.Avatar_url.strip() =="" or userinfo.Avatar_url.strip() is None:
+            base_responses.isSuccess=False
+            base_responses.ErrorMessage="Profile picture not found"
+            return json.dumps(base_responses.__dict__),404
+        else:
+            root_dir = os.path.dirname(app.instance_path)
+            print(root_dir)
+            print(f"{root_dir}\{userinfo.Avatar_url}")
+            return send_file(f"{root_dir}\{userinfo.Avatar_url}")
+    else:
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage="User not found"
+        return json.dumps(base_responses.__dict__),404
+
+@app.put("/user/update_avatar/<userid>")
+def UpdateAvatar(userid):
+    base_responses=BaseResponse()
+    file=request.files['avatar']
+    new_file=str(datetime.now().timestamp()).replace('.','')
+    split_file=file.filename.split('.')
+    ext=split_file[len(split_file)-1]
+    avaterpath=f"avatar\{new_file}.{ext}"
+    file.save(avaterpath)
+    userinfo=UserInfo.query.filter_by(id=userid).first()
+    if userinfo:
+        userinfo.Avatar_url=avaterpath
+        db.session.commit()
+        base_responses.isSuccess=True
+        base_responses.message=f" {avaterpath} Photo uploaded successfully"
+        return json.dumps(base_responses.__dict__),202
+    else:
+        base_responses.isSuccess=False
+        base_responses.ErrorMessage="User not found"
+        return json.dumps(base_responses.__dict__),404
+
+    return "success"
 
 #Get All User with details
 @app.get("/user/pagination")
@@ -175,3 +215,14 @@ class UserSchema(Schema):
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
+
+# Schema
+class UserInfoSchema(Schema):
+    id = fields.Str()
+    firstname = fields.Str()
+    lastname = fields.Str()
+    Avatar_url = fields.Str()
+
+
+userinfo_schema = UserInfoSchema()
+usersinfo_schema = UserInfoSchema(many=True)
