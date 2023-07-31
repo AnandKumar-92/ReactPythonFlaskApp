@@ -16,7 +16,7 @@ ma = Marshmallow(app)
 def Welcome():
     return "Welcome to flask Api Learning"
 
-import user_controller 
+import user_controller ,account_controller,userinfo_controller
 import commands
 
 if __name__ == "__main__":
