@@ -11,13 +11,13 @@ from extension import db
 from sqlalchemy.exc import IntegrityError
 import re
 
-
 @app.post("/user/signup")
 def SignupUser():
     base_responses=BaseResponse()
     usern=request.form['username']
     passwd=request.form['password']
     emailid=request.form['email']
+    role=request.form['role']
     ErrorMessage=[]
 
     checkuser=checkusername(usern)
@@ -40,7 +40,7 @@ def SignupUser():
         return json.dumps(base_responses.__dict__),400
     else:
         hashed_password=generate_password_hash(passwd,method='sha256')
-        new_user=User(username=usern,password=hashed_password,email=emailid,usertypeid=2)
+        new_user=User(username=usern,password=hashed_password,email=emailid,usertypeid=2,role=role)
         db.session.add(new_user)
         try:
             db.session.commit()

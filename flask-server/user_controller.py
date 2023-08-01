@@ -1,15 +1,12 @@
 from app import app
-from dbmodels import User,UserInfo,UserType
+from dbmodels import User
 from flask import request,send_file
-from extension import db
+from extension import db,auth_token
 from base_response import BaseResponse
-import json
+import json,os,re
 from sqlalchemy import text,create_engine
-import os
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime,timedelta
 from model_schema.users import user_schema,users_schema
-import re
 
 baseurl= os.path.abspath(os.path.dirname(__file__))
 engine = create_engine('sqlite:///'+os.path.join(baseurl,'Demostore.db'))
@@ -36,6 +33,7 @@ def GetUserspagination():
 
 # #Get All User with details
 @app.get("/user")
+@auth_token(Role="User")
 def GetUsers():
 
     base_responses=BaseResponse()
@@ -48,7 +46,6 @@ def GetUsers():
         base_responses.isSuccess=False
         base_responses.ErrorMessage=f"user not found"
         return json.dumps(base_responses.__dict__),404
-
 
 # get user by id
 @app.get("/user/<int:userid>")

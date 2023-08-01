@@ -17,6 +17,7 @@ class User(db.Model):
     username=Column(String(50),unique=True,nullable=False)
     password=Column(String(50))
     email=Column(String(50))
+    role=Column(Integer)
     usertypeid=Column(db.ForeignKey('usertype.id'))
     usertype=db.relationship('UserType',back_populates='user')
     userinfo=db.relationship('UserInfo',back_populates='user')

@@ -20,5 +20,5 @@ import user_controller ,account_controller,userinfo_controller
 import commands
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
 
