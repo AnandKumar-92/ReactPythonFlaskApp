@@ -13,6 +13,10 @@ def auth_token(*argss,**kwargs):
         def inner2(*args):
             base_responses=BaseResponse()
             authorization=request.headers.get("Authorization")
+            if authorization is None:
+                base_responses.isSuccess=False
+                base_responses.data="Please enter token"
+                return json.dumps(base_responses.__dict__),400
             if re.match("^Bearer *([^ ]+) *$", authorization, flags=0):
                 token=authorization.split(" ")[1]
                 try:

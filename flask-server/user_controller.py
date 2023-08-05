@@ -7,6 +7,7 @@ import json,os,re
 from sqlalchemy import text,create_engine
 from sqlalchemy.orm import sessionmaker
 from model_schema.users import user_schema,users_schema
+from logging_extn import logger
 
 baseurl= os.path.abspath(os.path.dirname(__file__))
 engine = create_engine('sqlite:///'+os.path.join(baseurl,'Demostore.db'))
@@ -16,6 +17,7 @@ session = Session()
 #Get All User with details
 @app.get("/user/pagination")
 def GetUserspagination():
+    logger.info(f" {__name__} started")
     page = request.args.get('page',1,int)
     per_page=request.args.get('per_page',1,int)
     base_responses=BaseResponse()
@@ -24,18 +26,21 @@ def GetUserspagination():
     if user_list:
         base_responses.isSuccess=True
         base_responses.data={"count": len(user_list), "users":users_schema.dumps(user_list)} 
+        logger.info(f"Pagination response for page={page} and per_page={per_page}:{users_schema.dumps(user_list)}" )
         return  json.dumps(base_responses.__dict__),200
     else:
         base_responses.isSuccess=False
-        base_responses.ErrorMessage=f"user not found"
+        base_responses.ErrorMessage=f"No Record Found"
+        logger.info(f"Pagination response for page={page} and per_page={per_page}: No Record Found " )
+
         return json.dumps(base_responses.__dict__),200
 
 
 # #Get All User with details
 @app.get("/user")
-@auth_token(Role="User")
+@auth_token(Role="User", City="Bihar")
 def GetUsers():
-
+    
     base_responses=BaseResponse()
     user_list=User.query.all()
     if user_list:
@@ -108,3 +113,4 @@ def DeleteUser(userid):
         base_responses.isSuccess=False
         base_responses.ErrorMessage="User not found"
         return json.dumps(base_responses.__dict__),404
+ 
